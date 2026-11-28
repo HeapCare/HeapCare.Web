@@ -505,3 +505,70 @@ button:not(:disabled):active{transform:translateY(1px)}
   background: #8f1c13;
   color: #ffffff;
 }
+
+
+/* Tenant role and permission administration */
+.tenant-roles-section{display:grid;gap:16px}
+.tenant-roles-section>.section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.tenant-roles-section>.section-heading>button,.tenant-role-editor button[type="submit"],.tenant-role-card-actions>button,.tenant-role-confirm button{
+  min-height:39px;padding:9px 14px;border:1px solid #087f78;border-radius:9px;background:#087f78;color:#fff;font-size:11px;font-weight:800;cursor:pointer
+}
+.tenant-roles-section button:disabled{opacity:.45;cursor:not-allowed}
+.tenant-role-editor{gap:17px}
+.tenant-role-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:14px}
+.tenant-role-fields>div,.tenant-role-editor>div:last-of-type{display:grid;gap:7px}
+.tenant-role-fields label,.tenant-role-editor>div:last-of-type>label,.tenant-role-confirm>label{font-size:11px;font-weight:750;color:#476274}
+.tenant-role-fields input,.tenant-role-fields textarea,.tenant-role-editor textarea,.tenant-role-confirm textarea{
+  width:100%;min-height:42px;padding:10px 12px;border:1px solid #d6e1e7;border-radius:9px;background:#fff;color:#193247;font:inherit;font-size:12px;resize:vertical
+}
+.tenant-role-fields input:focus,.tenant-role-fields textarea:focus,.tenant-role-editor textarea:focus,.tenant-role-confirm textarea:focus{
+  outline:3px solid #b8e6df;border-color:#0e827c
+}
+.tenant-role-permissions{display:grid;gap:13px}
+.tenant-role-permissions-heading{display:flex;justify-content:space-between;align-items:end;gap:12px}
+.tenant-role-permissions-heading h4{margin:0 0 4px;font-size:14px;color:#23465b}
+.tenant-role-permissions-heading>strong{font-size:11px;color:#0b7d76;font-variant-numeric:tabular-nums}
+.tenant-role-module{display:grid;gap:10px;padding:14px;border:1px solid #e3ebef;border-radius:11px;background:#f9fbfc}
+.tenant-role-module h5{margin:0;font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:#456274}
+.tenant-role-permission-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tenant-role-permission{display:grid;grid-template-columns:18px minmax(0,1fr);align-items:start;gap:9px;padding:11px;border:1px solid #e1e9ed;border-radius:9px;background:#fff;cursor:pointer}
+.tenant-role-permission:has(input:checked){border-color:#84c7be;background:#f0f9f7}
+.tenant-role-permission input{width:16px;height:16px;margin:2px 0 0;accent-color:#087f78}
+.tenant-role-permission>span{display:grid;gap:4px;min-width:0}
+.tenant-role-permission strong{font-size:11px;color:#24465b}
+.tenant-role-permission small{font-size:10px;line-height:1.5;color:#708795}
+.tenant-role-risk{justify-self:start;padding:3px 7px;border-radius:100px;background:#eef3f5;color:#5f7481;font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.tenant-role-risk-sensitive{background:#fff4df;color:#8b5b12}
+.tenant-role-risk-critical{background:#fff0ef;color:#9c352e}
+.tenant-role-editor .membership-form-actions{display:flex;justify-content:flex-end;gap:9px}
+.tenant-role-editor .membership-form-actions .clinical-secondary{min-height:39px;padding:9px 14px}
+.tenant-role-list-panel{display:grid;gap:14px}
+.tenant-role-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tenant-role-card{display:grid;align-content:start;gap:10px;padding:15px;border:1px solid #e2eaee;border-radius:12px;background:#fff}
+.tenant-role-card-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tenant-role-card-heading>div{display:grid;gap:4px;min-width:0}
+.tenant-role-card-heading strong{font-size:13px;color:#23465b}
+.tenant-role-card-heading small{font-size:10px;color:#718795;overflow-wrap:anywhere}
+.tenant-role-card>p{margin:0;font-size:11px;line-height:1.55;color:#657f8d}
+.tenant-role-grants{display:flex;flex-wrap:wrap;gap:6px}
+.tenant-role-grants>span{padding:5px 8px;border:1px solid #e2eaee;border-radius:7px;background:#f7fafb;color:#466274;font-size:9px;font-weight:700}
+.tenant-role-card-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:5px}
+.tenant-role-card-actions .clinical-secondary{min-height:35px;padding:8px 11px}
+.tenant-role-card-actions .queue-action-danger{min-height:35px;padding:8px 11px}
+.tenant-role-card-actions>small{font-size:10px}
+.tenant-role-confirm{display:grid;gap:8px;padding:12px;border:1px solid #e1e9ed;border-radius:9px;background:#f7fafb}
+.tenant-role-confirm .membership-form-actions{display:flex;gap:8px;flex-wrap:wrap}
+.tenant-role-confirm .clinical-secondary{min-height:35px;padding:8px 11px}
+@media(max-width:850px){
+  .tenant-role-fields{grid-template-columns:minmax(0,1fr)}
+  .tenant-role-list{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:600px){
+  .tenant-roles-section>.section-heading{align-items:flex-start;flex-direction:column}
+  .tenant-roles-section>.section-heading>button{width:100%}
+  .tenant-role-permission-grid{grid-template-columns:minmax(0,1fr)}
+  .tenant-role-permissions-heading{align-items:flex-start;flex-direction:column}
+  .tenant-role-editor .membership-form-actions{flex-direction:column}
+  .tenant-role-editor .membership-form-actions button{width:100%}
+  .tenant-role-card-heading{align-items:flex-start;flex-direction:column}
+}

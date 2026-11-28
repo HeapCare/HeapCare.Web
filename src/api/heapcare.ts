@@ -38,6 +38,38 @@ export interface TenantMembershipScopeInput {
   departmentId: string | null;
 }
 
+export type TenantPermissionRisk = "Standard" | "Sensitive" | "Critical" | number;
+
+export interface TenantPermissionDefinition {
+  code: string;
+  module: string;
+  resource: string;
+  action: string;
+  displayName: string;
+  description: string;
+  risk: TenantPermissionRisk;
+  isAssignable: boolean;
+}
+
+export interface TenantRole {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  isSystem: boolean;
+  isActive: boolean;
+  permissionCodes: string[];
+  createdAtUtc: string;
+  updatedAtUtc: string;
+}
+
+export interface TenantRoleInput {
+  name: string;
+  description: string;
+  permissionCodes: string[];
+  reason: string;
+}
+
 export interface Hospital {
   id: string;
   name: string;
@@ -202,6 +234,61 @@ export function reactivateTenantMembership(
   membershipId: string
 ): Promise<TenantMembership> {
   return postJson(baseUrl, `/api/v1/tenant/memberships/${encodeURIComponent(membershipId)}/reactivate`, accessToken, tenantId);
+}
+
+export function listTenantRoles(
+  baseUrl: string,
+  accessToken: string,
+  tenantId: string
+): Promise<TenantRole[]> {
+  return getJson(baseUrl, "/api/v1/tenant/roles", accessToken, tenantId);
+}
+
+export function listAssignableTenantPermissions(
+  baseUrl: string,
+  accessToken: string,
+  tenantId: string
+): Promise<TenantPermissionDefinition[]> {
+  return getJson(baseUrl, "/api/v1/tenant/roles/permissions", accessToken, tenantId);
+}
+
+export function createTenantRole(
+  baseUrl: string,
+  accessToken: string,
+  tenantId: string,
+  input: TenantRoleInput
+): Promise<TenantRole> {
+  return postJson(baseUrl, "/api/v1/tenant/roles", accessToken, tenantId, input);
+}
+
+export function updateTenantRole(
+  baseUrl: string,
+  accessToken: string,
+  tenantId: string,
+  roleId: string,
+  input: TenantRoleInput
+): Promise<TenantRole> {
+  return putJson(baseUrl, `/api/v1/tenant/roles/${encodeURIComponent(roleId)}`, accessToken, tenantId, input);
+}
+
+export function deactivateTenantRole(
+  baseUrl: string,
+  accessToken: string,
+  tenantId: string,
+  roleId: string,
+  reason: string
+): Promise<TenantRole> {
+  return postJson(baseUrl, `/api/v1/tenant/roles/${encodeURIComponent(roleId)}/deactivate`, accessToken, tenantId, { reason });
+}
+
+export function reactivateTenantRole(
+  baseUrl: string,
+  accessToken: string,
+  tenantId: string,
+  roleId: string,
+  reason: string
+): Promise<TenantRole> {
+  return postJson(baseUrl, `/api/v1/tenant/roles/${encodeURIComponent(roleId)}/reactivate`, accessToken, tenantId, { reason });
 }
 
 export function searchPatients(

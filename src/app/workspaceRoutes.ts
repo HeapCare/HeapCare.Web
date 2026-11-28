@@ -10,6 +10,7 @@ export const WORKSPACE_MODULE_SECTIONS = [
   "facilities",
   "mrn-policy",
   "memberships",
+  "roles",
   "platform-tenants"
 ] as const;
 

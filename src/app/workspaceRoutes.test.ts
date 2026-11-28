@@ -10,6 +10,7 @@ describe("route-level workspace navigation", () => {
     expect(getRequestedWorkspaceSection("/billing", "#billing")).toBe("billing");
     expect(getRequestedWorkspaceSection("/", "#clinical")).toBe("clinical");
     expect(getRequestedWorkspaceSection("/appointment-management", "")).toBe("appointment-management");
+    expect(getRequestedWorkspaceSection("/roles", "#roles")).toBe("roles");
   });
 
   it("preserves non-module anchors while canonicalizing legacy module hashes", () => {

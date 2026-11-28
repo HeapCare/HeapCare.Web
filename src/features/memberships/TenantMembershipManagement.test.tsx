@@ -5,6 +5,7 @@ import {
   deactivateTenantMembership,
   listDepartments,
   listTenantMemberships,
+  listTenantRoles,
   reactivateTenantMembership,
   updateTenantMembership
 } from "../../api/heapcare";
@@ -21,6 +22,7 @@ vi.mock("../../api/heapcare", () => ({
   deactivateTenantMembership: vi.fn(),
   listDepartments: vi.fn(),
   listTenantMemberships: vi.fn(),
+  listTenantRoles: vi.fn(),
   reactivateTenantMembership: vi.fn(),
   updateTenantMembership: vi.fn()
 }));
@@ -38,6 +40,12 @@ const membership: TenantMembership = {
   updatedAtUtc: "2026-11-26T00:00:00Z",
   scopes: hospitalScope
 };
+const availableRoles = [
+  { id: "role-admin", code: "HospitalAdmin", name: "Hospital Administrator", description: "Tenant administrator", isSystem: true, isActive: true, permissionCodes: ["membership.manage"], createdAtUtc: "", updatedAtUtc: "" },
+  { id: "role-viewer", code: "FacilityViewer", name: "Facility Viewer", description: "Read-only facility access", isSystem: true, isActive: true, permissionCodes: ["facility.read"], createdAtUtc: "", updatedAtUtc: "" },
+  { id: "role-manager", code: "FacilityManager", name: "Facility Manager", description: "Facility updates", isSystem: true, isActive: true, permissionCodes: ["facility.read", "facility.write"], createdAtUtc: "", updatedAtUtc: "" },
+  { id: "role-clinical", code: "ClinicalUser", name: "Clinical User", description: "Clinical workflow", isSystem: true, isActive: true, permissionCodes: ["encounter.read"], createdAtUtc: "", updatedAtUtc: "" }
+];
 const page = (items: TenantMembership[]) => ({
   items, page: 1, pageSize: 50, totalCount: items.length, totalPages: items.length ? 1 : 0
 });
@@ -50,6 +58,7 @@ const props = {
   permissions: ["membership.manage"],
   scopes: tenantScope,
   hospitals: [hospital],
+  roleRevision: 0,
   onBusyChange: vi.fn()
 };
 
@@ -57,6 +66,7 @@ describe("TenantMembershipManagement", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(listTenantMemberships).mockResolvedValue(page([membership]));
+    vi.mocked(listTenantRoles).mockResolvedValue(availableRoles);
     vi.mocked(listDepartments).mockResolvedValue({
       items: [{ id: "department-1", hospitalId: hospital.id, name: "Medicine", code: "MED" }],
       page: 1, pageSize: 100, totalCount: 1, totalPages: 1
@@ -75,6 +85,9 @@ describe("TenantMembershipManagement", () => {
     expect(screen.getAllByText("City Hospital").length).toBeGreaterThan(0);
     expect(listTenantMemberships).toHaveBeenCalledWith(
       "https://api.example.test", "test-token", "tenant-1", 1
+    );
+    expect(listTenantRoles).toHaveBeenCalledWith(
+      "https://api.example.test", "test-token", "tenant-1"
     );
   });
 
@@ -114,6 +127,7 @@ describe("TenantMembershipManagement", () => {
   it("updates role and scopes while preserving the membership identity", async () => {
     render(<TenantMembershipManagement {...props} />);
 
+    await screen.findByRole("option", { name: "Facility Manager" });
     fireEvent.click(await screen.findByRole("button", { name: "Edit access" }));
     fireEvent.change(screen.getByLabelText("Role"), { target: { value: "FacilityManager" } });
     fireEvent.click(screen.getByRole("button", { name: "Save access" }));
@@ -171,6 +185,7 @@ describe("TenantMembershipManagement", () => {
 
     render(<TenantMembershipManagement {...props} />);
 
+    await screen.findByRole("option", { name: "Facility Viewer" });
     fireEvent.change(screen.getByLabelText("OIDC subject *"), {
       target: { value: "conflicting-user-subject" }
     });

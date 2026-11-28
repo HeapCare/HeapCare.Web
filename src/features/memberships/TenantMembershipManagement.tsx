@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import type { OrganizationScope, Hospital, Department, TenantMembership, TenantMembershipScopeInput } from "../../api/heapcare";
+import type { OrganizationScope, Hospital, Department, TenantMembership, TenantMembershipScopeInput, TenantRole } from "../../api/heapcare";
 import {
   ApiError,
   createTenantMembership,
   deactivateTenantMembership,
   listDepartments,
   listTenantMemberships,
+  listTenantRoles,
   reactivateTenantMembership,
   updateTenantMembership
 } from "../../api/heapcare";
 
-const roles = ["HospitalAdmin", "FacilityManager", "FacilityViewer", "PatientRegistrar", "ClinicalUser"];
 
 interface ScopeEditorProps {
   value: OrganizationScope[];
@@ -22,6 +22,14 @@ interface ScopeEditorProps {
   onLoadDepartments: (hospitalId: string) => void;
   disabled: boolean;
   idPrefix: string;
+}
+
+function chooseLeastPrivilegeRole(roleOptions: TenantRole[]): string {
+  return [...roleOptions]
+    .filter(role => role.isActive)
+    .sort((left, right) =>
+      left.permissionCodes.length - right.permissionCodes.length ||
+      left.name.localeCompare(right.name))[0]?.code ?? "";
 }
 
 function createScope(type: OrganizationScope["scopeType"], hospitalId: string | null = null): OrganizationScope {
@@ -107,6 +115,7 @@ interface Props {
   permissions: string[];
   scopes: OrganizationScope[];
   hospitals: Hospital[];
+  roleRevision: number;
   onBusyChange: (busy: boolean) => void;
 }
 
@@ -130,7 +139,7 @@ function formatScope(scope: OrganizationScope, hospitals: Hospital[], department
 }
 
 export function TenantMembershipManagement({
-  baseUrl, accessToken, tenantId, currentIssuer, currentSubject, permissions, scopes, hospitals, onBusyChange
+  baseUrl, accessToken, tenantId, currentIssuer, currentSubject, permissions, scopes, hospitals, roleRevision, onBusyChange
 }: Props) {
   const canManage = permissions.includes("membership.manage");
   const tenantWide = scopes.some(scope => scope.scopeType === "Tenant");
@@ -140,6 +149,7 @@ export function TenantMembershipManagement({
   [tenantWide, hospitalScoped]);
 
   const [memberships, setMemberships] = useState<TenantMembership[]>([]);
+  const [roleOptions, setRoleOptions] = useState<TenantRole[]>([]);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -151,7 +161,7 @@ export function TenantMembershipManagement({
   const [departmentLoads, setDepartmentLoads] = useState<string[]>([]);
 
   const [newSubject, setNewSubject] = useState("");
-  const [newRole, setNewRole] = useState("FacilityViewer");
+  const [newRole, setNewRole] = useState("");
   const [newScopes, setNewScopes] = useState<OrganizationScope[]>([]);
   const [editingId, setEditingId] = useState("");
   const [editingRole, setEditingRole] = useState("");
@@ -212,17 +222,24 @@ export function TenantMembershipManagement({
   useEffect(() => {
     let active = true;
     setLoading(true);
-    listTenantMemberships(baseUrl, accessToken, tenantId, page)
-      .then(result => {
+    Promise.all([
+      listTenantMemberships(baseUrl, accessToken, tenantId, page),
+      listTenantRoles(baseUrl, accessToken, tenantId)
+    ])
+      .then(([result, availableRoles]) => {
         if (!active) return;
         setMemberships(result.items);
         setTotalCount(result.totalCount);
         setTotalPages(result.totalPages);
+        setRoleOptions(availableRoles);
+        setNewRole(current => current && availableRoles.some(role => role.code === current && role.isActive)
+          ? current
+          : chooseLeastPrivilegeRole(availableRoles));
       })
       .catch(cause => { if (active) setError(getErrorMessage(cause)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [baseUrl, accessToken, tenantId, page]);
+  }, [baseUrl, accessToken, tenantId, page, roleRevision]);
 
   async function runMutation(action: () => Promise<void>, message: string) {
     setBusy(true);
@@ -261,7 +278,7 @@ export function TenantMembershipManagement({
 
   async function submitCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!currentIssuer || !newSubject.trim() || !validScopes(newScopes)) {
+    if (!currentIssuer || !newSubject.trim() || !newRole || !validScopes(newScopes)) {
       setError("Enter the OIDC subject and complete at least one valid organization scope.");
       return;
     }
@@ -273,7 +290,7 @@ export function TenantMembershipManagement({
         scopes: toScopeInputs(newScopes)
       });
       setNewSubject("");
-      setNewRole("FacilityViewer");
+      setNewRole(chooseLeastPrivilegeRole(roleOptions));
       setNewScopes([]);
     }, "Membership created.");
   }
@@ -322,9 +339,9 @@ export function TenantMembershipManagement({
       <form onSubmit={submitCreate} className="membership-create-form">
         <div><label htmlFor="membership-issuer">Identity issuer</label><input id="membership-issuer" value={currentIssuer} readOnly disabled/></div>
         <div><label htmlFor="membership-subject">OIDC subject *</label><input id="membership-subject" value={newSubject} onChange={event=>setNewSubject(event.target.value)} maxLength={255} required disabled={busy}/></div>
-        <div><label htmlFor="membership-role">Tenant role</label><select id="membership-role" value={newRole} onChange={event=>setNewRole(event.target.value)} disabled={busy}>{roles.map(role=><option key={role} value={role}>{role}</option>)}</select></div>
+        <div><label htmlFor="membership-role">Tenant role</label><select id="membership-role" value={newRole} onChange={event=>setNewRole(event.target.value)} disabled={busy || roleOptions.filter(role => role.isActive).length === 0}><option value="">Choose an available role</option>{roleOptions.filter(role => role.isActive).map(role=><option key={role.code} value={role.code}>{role.name}</option>)}</select></div>
         <div className="membership-scope-section"><strong>Organization scope</strong><ScopeEditor value={newScopes} onChange={setNewScopes} allowedScopeTypes={allowedScopeTypes} hospitals={hospitals} departmentsByHospital={departmentsByHospital} onLoadDepartments={loadDepartmentsForHospital} disabled={busy} idPrefix="membership-create"/></div>
-        <div className="membership-form-actions"><button type="submit" disabled={busy || !currentIssuer || !newSubject.trim() || !validScopes(newScopes)}>{busy ? "Saving…" : "Create membership"}</button></div>
+        <div className="membership-form-actions"><button type="submit" disabled={busy || !currentIssuer || !newSubject.trim() || !newRole || !validScopes(newScopes)}>{busy ? "Saving…" : "Create membership"}</button></div>
       </form>
     </div>
 
@@ -340,7 +357,10 @@ export function TenantMembershipManagement({
             </div>
             <div className="membership-card-meta"><span>Role: <strong>{membership.role}</strong></span><span>{membership.scopes.map(scope => formatScope(scope, hospitals, departmentsByHospital)).join(" · ")}</span></div>
             {editingId === membership.id ? <form className="membership-edit-form" onSubmit={submitEdit}>
-              <div><label htmlFor={`membership-role-${membership.id}`}>Role</label><select id={`membership-role-${membership.id}`} value={editingRole} onChange={event=>setEditingRole(event.target.value)} disabled={busy}>{roles.map(role=><option key={role} value={role}>{role}</option>)}</select></div>
+              <div><label htmlFor={`membership-role-${membership.id}`}>Role</label><select id={`membership-role-${membership.id}`} value={editingRole} onChange={event=>setEditingRole(event.target.value)} disabled={busy}>
+                {!roleOptions.some(role => role.code === editingRole && role.isActive) && <option value={editingRole} disabled>{editingRole} · current assignment (not delegable)</option>}
+                {roleOptions.filter(role => role.isActive).map(role=><option key={role.code} value={role.code}>{role.name}</option>)}
+              </select></div>
               <div className="membership-scope-section"><strong>Organization scopes</strong><ScopeEditor value={editingScopes} onChange={setEditingScopes} allowedScopeTypes={allowedScopeTypes} hospitals={hospitals} departmentsByHospital={departmentsByHospital} onLoadDepartments={loadDepartmentsForHospital} disabled={busy} idPrefix={`membership-edit-${membership.id}`}/></div>
               <div className="membership-form-actions"><button type="submit" disabled={busy || isSelf || !validScopes(editingScopes)}>Save access</button><button type="button" className="clinical-secondary" onClick={()=>setEditingId("")} disabled={busy}>Cancel</button></div>
             </form> : <div className="membership-actions">
